@@ -1,0 +1,64 @@
+<div class="zone" style="position: fixed; top: 0; right: 0; bottom: 0; left: 0;"></div>
+
+<script>
+function traverseFileTree(item, path, clcParent, galParent) {
+  path = path || "";
+  let clcTarget = clcParent && clcParent.children || structure;
+  let galTarget = galParent && galParent.children || false;
+  if (item.isFile) {
+    // Get file
+    item.file(function(file) {
+      let newFile = {
+        parent: galParent,
+        file: file
+      }
+      files.push(newFile);
+      if (galTarget) {
+        galTarget.push(newFile);
+      }
+    });
+  } else if (item.isDirectory) {
+    // Get folder contents
+    let newCollection = makeContainer('collection', item.name);
+    let newGallery = makeContainer('gallery', item.name);
+    var dirReader = item.createReader();
+    dirReader.readEntries(function(entries) {
+      if (entries.length) {
+        clcTarget.push(newCollection);
+        clcTarget.push(newGallery);
+      }
+      for (var i=0; i<entries.length; i++) {
+        traverseFileTree(entries[i], path + item.name + "/", newCollection, newGallery);
+      }
+    });
+  }
+}
+function makeContainer(type, name) {
+  return {
+    type: type,
+    name: name,
+    description: name,
+    children: []
+  }
+}
+let dragTarget = document.querySelector('.zone');
+let structure = [];
+let files = [];
+dragTarget.addEventListener('dragover', function(e) {e.preventDefault();e.stopPropagation();});
+dragTarget.addEventListener('dragenter', function(e) {e.preventDefault();e.stopPropagation();});
+dragTarget.addEventListener('drop', function(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  var items = event.dataTransfer.items;
+  if (!items) {
+    return console.log('`event.dataTransfer.items` is not supported.');
+  }
+  for (var i=0; i<items.length; i++) {
+    // webkitGetAsEntry is where the magic happens
+    var item = items[i].webkitGetAsEntry();
+    if (item) {
+      traverseFileTree(item);
+    }
+  }
+}, false);
+</script>
